@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		014A3B6A1C6CF34500B6D375 /* ImagePickerManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 014A3B691C6CF34500B6D375 /* ImagePickerManager.m */; };
+		CE1C5B5E21A6AFEE0081ED3D /* BaseAnimator.m in Sources */ = {isa = PBXBuildFile; fileRef = CE1C5B5421A6AFEC0081ED3D /* BaseAnimator.m */; };
+		CE1C5B5F21A6AFEE0081ED3D /* DummyView.m in Sources */ = {isa = PBXBuildFile; fileRef = CE1C5B5621A6AFED0081ED3D /* DummyView.m */; };
+		CE1C5B6121A6AFEE0081ED3D /* MiniToLargeViewAnimator.m in Sources */ = {isa = PBXBuildFile; fileRef = CE1C5B5821A6AFED0081ED3D /* MiniToLargeViewAnimator.m */; };
+		CE1C5B6221A6AFEE0081ED3D /* MiniToLargeViewInteractive.m in Sources */ = {isa = PBXBuildFile; fileRef = CE1C5B5A21A6AFED0081ED3D /* MiniToLargeViewInteractive.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -26,6 +30,14 @@
 		014A3B5C1C6CF33500B6D375 /* libRNImagePicker.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRNImagePicker.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		014A3B681C6CF34500B6D375 /* ImagePickerManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImagePickerManager.h; sourceTree = "<group>"; };
 		014A3B691C6CF34500B6D375 /* ImagePickerManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ImagePickerManager.m; sourceTree = "<group>"; };
+		CE1C5B5421A6AFEC0081ED3D /* BaseAnimator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BaseAnimator.m; sourceTree = "<group>"; };
+		CE1C5B5521A6AFEC0081ED3D /* DummyView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DummyView.h; sourceTree = "<group>"; };
+		CE1C5B5621A6AFED0081ED3D /* DummyView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DummyView.m; sourceTree = "<group>"; };
+		CE1C5B5821A6AFED0081ED3D /* MiniToLargeViewAnimator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MiniToLargeViewAnimator.m; sourceTree = "<group>"; };
+		CE1C5B5921A6AFED0081ED3D /* BaseAnimator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BaseAnimator.h; sourceTree = "<group>"; };
+		CE1C5B5A21A6AFED0081ED3D /* MiniToLargeViewInteractive.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MiniToLargeViewInteractive.m; sourceTree = "<group>"; };
+		CE1C5B5B21A6AFED0081ED3D /* MiniToLargeViewAnimator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MiniToLargeViewAnimator.h; sourceTree = "<group>"; };
+		CE1C5B5C21A6AFED0081ED3D /* MiniToLargeViewInteractive.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MiniToLargeViewInteractive.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +54,14 @@
 		014A3B531C6CF33500B6D375 = {
 			isa = PBXGroup;
 			children = (
+				CE1C5B5921A6AFED0081ED3D /* BaseAnimator.h */,
+				CE1C5B5421A6AFEC0081ED3D /* BaseAnimator.m */,
+				CE1C5B5521A6AFEC0081ED3D /* DummyView.h */,
+				CE1C5B5621A6AFED0081ED3D /* DummyView.m */,
+				CE1C5B5B21A6AFED0081ED3D /* MiniToLargeViewAnimator.h */,
+				CE1C5B5821A6AFED0081ED3D /* MiniToLargeViewAnimator.m */,
+				CE1C5B5C21A6AFED0081ED3D /* MiniToLargeViewInteractive.h */,
+				CE1C5B5A21A6AFED0081ED3D /* MiniToLargeViewInteractive.m */,
 				014A3B681C6CF34500B6D375 /* ImagePickerManager.h */,
 				014A3B691C6CF34500B6D375 /* ImagePickerManager.m */,
 				014A3B5D1C6CF33500B6D375 /* Products */,
@@ -113,6 +133,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				014A3B6A1C6CF34500B6D375 /* ImagePickerManager.m in Sources */,
+				CE1C5B6221A6AFEE0081ED3D /* MiniToLargeViewInteractive.m in Sources */,
+				CE1C5B5F21A6AFEE0081ED3D /* DummyView.m in Sources */,
+				CE1C5B6121A6AFEE0081ED3D /* MiniToLargeViewAnimator.m in Sources */,
+				CE1C5B5E21A6AFEE0081ED3D /* BaseAnimator.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

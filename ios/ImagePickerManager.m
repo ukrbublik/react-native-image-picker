@@ -5,6 +5,12 @@
 #import <Photos/Photos.h>
 #import <React/RCTUtils.h>
 
+//for swipes
+#import "DummyView.h"
+#import "MiniToLargeViewAnimator.h"
+#import "MiniToLargeViewInteractive.h"
+static CGFloat kButtonHeight = 50.f;
+
 @import MobileCoreServices;
 
 @interface ImagePickerManager ()
@@ -15,6 +21,13 @@
 @property (nonatomic, strong) NSDictionary *defaultOptions;
 @property (nonatomic, retain) NSMutableDictionary *options, *response;
 @property (nonatomic, strong) NSArray *customButtons;
+
+//for swipes
+@property (nonatomic) UIViewController *nextViewController;
+@property (nonatomic) MiniToLargeViewInteractive *presentInteractor;
+@property (nonatomic) MiniToLargeViewInteractive *dismissInteractor;
+@property (nonatomic, weak) UIView *dummyView;
+@property (nonatomic) BOOL disableInteractivePlayerTransitioning;
 
 @end
 
@@ -34,10 +47,23 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespon
     [self launchImagePicker:RNImagePickerTargetLibrarySingleImage options:options];
 }
 
+RCT_EXPORT_METHOD(enableSwipableImageLibrary:(NSDictionary *)options callback:(RCTResponseSenderBlock)callback)
+{
+    self.callback = callback;
+    [self enableSwipableImagePicker:RNImagePickerTargetLibrarySingleImage options:options];
+}
+
+RCT_EXPORT_METHOD(disableSwipableImageLibrary:(NSDictionary *)options callback:(RCTResponseSenderBlock)callback)
+{
+    self.callback = callback;
+    [self disableSwipableImagePicker:RNImagePickerTargetLibrarySingleImage options:options];
+}
+
+
 RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseSenderBlock)callback)
 {
     self.callback = callback; // Save the callback so we can use it from the delegate methods
-    self.options = options;
+    self.options = [options mutableCopy];
 
     NSString *title = [self.options valueForKey:@"title"];
     if ([title isEqual:[NSNull null]] || title.length == 0) {
@@ -125,14 +151,67 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
 
 - (void)launchImagePicker:(RNImagePickerTarget)target options:(NSDictionary *)options
 {
-    self.options = options;
+    self.options = [options mutableCopy];
     [self launchImagePicker:target];
 }
 
-- (void)launchImagePicker:(RNImagePickerTarget)target
+- (void)enableSwipableImagePicker:(RNImagePickerTarget)target options:(NSDictionary *)options
 {
-    self.picker = [[UIImagePickerController alloc] init];
+    self.options = [options mutableCopy];
+    [self enableSwipableImagePicker:target];
+}
 
+- (void)disableSwipableImagePicker:(RNImagePickerTarget)target options:(NSDictionary *)options
+{
+    self.options = [options mutableCopy];
+    [self disableSwipableImagePicker:target];
+}
+
+- (void)enableSwipableImagePicker:(RNImagePickerTarget)target
+{
+    // Setup
+    [self setupImagePicker:target];
+    
+    // Setup swipes
+    void (^setupSwipesForImagePicker)() = ^void() {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self setupSwipesForPVC:self.picker];
+        });
+    };
+    
+    // Check permissions
+    if (target == RNImagePickerTargetCamera) {
+        [self checkCameraPermissions:^(BOOL granted) {
+            if (!granted) {
+                self.callback(@[@{@"error": @"Camera permissions not granted"}]);
+                return;
+            }
+            
+            setupSwipesForImagePicker();
+        }];
+    }
+    else { // RNImagePickerTargetLibrarySingleImage
+        [self checkPhotosPermissions:^(BOOL granted) {
+            if (!granted) {
+                self.callback(@[@{@"error": @"Photo library permissions not granted"}]);
+                return;
+            }
+            
+            setupSwipesForImagePicker();
+        }];
+    }
+}
+
+- (void)disableSwipableImagePicker:(RNImagePickerTarget)target
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self releaseImagePicker];
+    });
+}
+
+- (void)setupImagePicker:(RNImagePickerTarget)target {
+    self.picker = [[UIImagePickerController alloc] init];
+    
     if (target == RNImagePickerTargetCamera) {
 #if TARGET_IPHONE_SIMULATOR
         self.callback(@[@{@"error": @"Camera not available on simulator"}]);
@@ -150,10 +229,10 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
     else { // RNImagePickerTargetLibrarySingleImage
         self.picker.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
     }
-
+    
     if ([[self.options objectForKey:@"mediaType"] isEqualToString:@"video"]
         || [[self.options objectForKey:@"mediaType"] isEqualToString:@"mixed"]) {
-
+        
         if ([[self.options objectForKey:@"videoQuality"] isEqualToString:@"high"]) {
             self.picker.videoQuality = UIImagePickerControllerQualityTypeHigh;
         }
@@ -163,7 +242,7 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
         else {
             self.picker.videoQuality = UIImagePickerControllerQualityTypeMedium;
         }
-
+        
         id durationLimit = [self.options objectForKey:@"durationLimit"];
         if (durationLimit) {
             self.picker.videoMaximumDuration = [durationLimit doubleValue];
@@ -177,21 +256,37 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
     } else {
         self.picker.mediaTypes = @[(NSString *)kUTTypeImage];
     }
-
+    
     if ([[self.options objectForKey:@"allowsEditing"] boolValue]) {
         self.picker.allowsEditing = true;
     }
     self.picker.modalPresentationStyle = UIModalPresentationCurrentContext;
     self.picker.delegate = self;
+}
 
-    // Check permissions
+- (void)releaseImagePicker {
+    [self releaseSwipes];
+    if (self.picker) {
+        self.picker.delegate = nil;
+    }
+    self.picker = nil;
+}
+
+- (void)launchImagePicker:(RNImagePickerTarget)target
+{
+    // Setup
+    [self setupImagePicker:target];
+    
+    // Show
     void (^showPickerViewController)() = ^void() {
         dispatch_async(dispatch_get_main_queue(), ^{
             UIViewController *root = RCTPresentedViewController();
-            [root presentViewController:self.picker animated:YES completion:nil];
+            [root presentViewController:self.picker animated:YES completion:^{
+            }];
         });
     };
 
+    // Check permissions
     if (target == RNImagePickerTargetCamera) {
         [self checkCameraPermissions:^(BOOL granted) {
             if (!granted) {
@@ -519,9 +614,111 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
 {
     dispatch_async(dispatch_get_main_queue(), ^{
         [picker dismissViewControllerAnimated:YES completion:^{
-            self.callback(@[@{@"didCancel": @YES}]);
+            if (self.dummyView) {
+                // don't send cancel because it can be multiple times which cause crash
+            } else {
+                self.callback(@[@{@"didCancel": @YES}]);
+            }
         }];
     });
+}
+
+#pragma mark - swipes
+
+- (void)releaseSwipes {
+    //UIViewController *rootVC = RCTPresentedViewController();
+    if (self.dummyView) {
+        [self.dummyView removeFromSuperview];
+        self.dummyView = nil;
+    }
+    if (self.presentInteractor) {
+        [self.presentInteractor detach];
+    }
+    if (self.dismissInteractor) {
+        [self.dismissInteractor detach];
+    }
+    if (self.nextViewController) {
+        //reset to defaults
+        self.nextViewController.transitioningDelegate = nil;
+        self.nextViewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
+        self.nextViewController.modalPresentationStyle = UIModalPresentationFullScreen;
+    }
+    self.nextViewController = nil;
+    self.presentInteractor = nil;
+    self.dismissInteractor = nil;
+}
+
+- (void)setupSwipesForPVC:(UIViewController*)pvc {
+    [self releaseSwipes];
+    
+    UIViewController *rootVC = RCTPresentedViewController();
+    
+    DummyView *dummyView = [[DummyView alloc] init];
+    dummyView.translatesAutoresizingMaskIntoConstraints = NO;
+    [dummyView.button addTarget:self action:@selector(bottomButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+    [rootVC.view addSubview:dummyView];
+    [dummyView addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.f constant:kButtonHeight]];
+    [rootVC.view addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:dummyView.superview attribute:NSLayoutAttributeRight multiplier:1.0 constant:0]];
+    [rootVC.view addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:dummyView.superview attribute:NSLayoutAttributeBottom multiplier:1.0 constant:0]];
+    [rootVC.view addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:dummyView.superview attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0]];
+    self.dummyView = dummyView;
+    
+    self.nextViewController = pvc;
+    self.nextViewController.transitioningDelegate = self;
+    self.nextViewController.modalTransitionStyle = UIModalPresentationCustom;
+    self.nextViewController.modalPresentationStyle = UIModalPresentationFullScreen;
+    
+    self.presentInteractor = [[MiniToLargeViewInteractive alloc] init];
+    [self.presentInteractor attachToViewController:rootVC withSwipeView:dummyView withMiniView:dummyView presentViewController:self.nextViewController];
+    
+    self.dismissInteractor = [[MiniToLargeViewInteractive alloc] init];
+    [self.dismissInteractor attachToViewController:self.nextViewController withSwipeView:self.nextViewController.view withMiniView:dummyView presentViewController:nil];
+}
+
+
+- (void)bottomButtonTapped
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIViewController *rootVC = RCTPresentedViewController();
+        self.disableInteractivePlayerTransitioning = YES;
+        [rootVC presentViewController:self.nextViewController animated:YES completion:^{
+            self.disableInteractivePlayerTransitioning = NO;
+        }];
+    });
+}
+
+- (id<UIViewControllerAnimatedTransitioning>)animationControllerForDismissedController:(UIViewController *)dismissed
+{
+    MiniToLargeViewAnimator *animator = [[MiniToLargeViewAnimator alloc] init];
+    animator.initialY = kButtonHeight;
+    animator.transitionType = ModalAnimatedTransitioningTypeDismiss;
+    animator.miniView = self.dummyView;
+    return animator;
+}
+
+- (id<UIViewControllerAnimatedTransitioning>)animationControllerForPresentedController:(UIViewController *)presented presentingController:(UIViewController *)presenting sourceController:(UIViewController *)source
+{
+    MiniToLargeViewAnimator *animator = [[MiniToLargeViewAnimator alloc] init];
+    animator.initialY = kButtonHeight;
+    animator.transitionType = ModalAnimatedTransitioningTypePresent;
+    animator.miniView = self.dummyView;
+    return animator;
+}
+
+- (id<UIViewControllerInteractiveTransitioning>)interactionControllerForPresentation:(id<UIViewControllerAnimatedTransitioning>)animator
+{
+    if (self.disableInteractivePlayerTransitioning) {
+        return nil;
+    }
+    return self.presentInteractor;
+}
+
+- (id<UIViewControllerInteractiveTransitioning>)interactionControllerForDismissal:(id<UIViewControllerAnimatedTransitioning>)animator
+{
+    if (self.disableInteractivePlayerTransitioning) {
+        return nil;
+    }
+    return self.dismissInteractor;
 }
 
 #pragma mark - Helpers

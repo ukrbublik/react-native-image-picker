@@ -26,5 +26,23 @@ module.exports = {
       options = {};
     }
     return ImagePickerManager.showImagePicker({...DEFAULT_OPTIONS, ...options}, callback)
-  }
+  },
+  enableSwipableImageLibrary: function showImagePicker(options, callback) {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    if (!callback)
+      callback = () => {};
+    return ImagePickerManager.enableSwipableImageLibrary({...DEFAULT_OPTIONS, ...options}, callback)
+  },
+  disableSwipableImageLibrary: function showImagePicker(options, callback) {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    if (!callback)
+      callback = () => {};
+    return ImagePickerManager.disableSwipableImageLibrary({...DEFAULT_OPTIONS, ...options}, callback)
+  },
 }
