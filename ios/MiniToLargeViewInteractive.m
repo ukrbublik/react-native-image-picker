@@ -1,24 +1,17 @@
-//
-//  MiniToLargeViewInteractive.m
-//  DraggableViewControllerDemo
-//
-//  Created by saiday on 11/19/15.
-//  Copyright © 2015 saiday. All rights reserved.
-//
-
 #import "MiniToLargeViewInteractive.h"
 
 @interface MiniToLargeViewInteractive ()
 
 @property (nonatomic) BOOL shouldComplete;
 @property (nonatomic, weak) UIView *swipeView;
-@property (nonatomic, weak) UIView *miniView;
+@property (nonatomic, weak) DummyView *miniView;
 
 @end
 
+
 @implementation MiniToLargeViewInteractive
 
-- (void)attachToViewController:(UIViewController *)viewController withSwipeView:(UIView *)swipeView withMiniView:(UIView *)miniView presentViewController:(UIViewController *)presentViewController
+- (void)attachToViewController:(UIViewController *)viewController withSwipeView:(UIView *)swipeView withMiniView:(DummyView *)miniView presentViewController:(UIViewController *)presentViewController
 {
     self.viewController = viewController;
     self.presentViewController = presentViewController;

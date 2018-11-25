@@ -1,7 +1,17 @@
-'use strict'
 
-const { NativeModules } = require('react-native');
-const { ImagePickerManager } = NativeModules;
+import React, { Component } from 'react';
+const { NativeModules, requireNativeComponent, findNodeHandle } = require('react-native');
+const { ImagePickerManager: NativeImagePickerManager } = NativeModules;
+
+class MiniViewComponent extends Component {
+}
+const MiniView = {
+  component: requireNativeComponent('MiniView', MiniViewComponent),
+  use: (ref) => {
+    NativeModules['MiniViewManager']['use'](findNodeHandle(ref));
+  },
+};
+export { MiniView };
 
 const DEFAULT_OPTIONS = {
   title: 'Select a Photo',
@@ -18,31 +28,36 @@ const DEFAULT_OPTIONS = {
   }
 };
 
-module.exports = {
-  ...ImagePickerManager,
+const ImagePickerManager = {
+  ...NativeImagePickerManager,
   showImagePicker: function showImagePicker(options, callback) {
     if (typeof options === 'function') {
       callback = options;
       options = {};
     }
-    return ImagePickerManager.showImagePicker({...DEFAULT_OPTIONS, ...options}, callback)
+    return NativeImagePickerManager.showImagePicker({...DEFAULT_OPTIONS, ...options}, callback)
   },
-  enableSwipableImageLibrary: function showImagePicker(options, callback) {
+  enableSwipableImageLibrary: function(options, callback) {
     if (typeof options === 'function') {
       callback = options;
       options = {};
     }
     if (!callback)
       callback = () => {};
-    return ImagePickerManager.enableSwipableImageLibrary({...DEFAULT_OPTIONS, ...options}, callback)
+    return NativeImagePickerManager.enableSwipableImageLibrary({...DEFAULT_OPTIONS, ...options}, callback)
   },
-  disableSwipableImageLibrary: function showImagePicker(options, callback) {
+  enableSwipableCamera: function(options, callback) {
     if (typeof options === 'function') {
       callback = options;
       options = {};
     }
     if (!callback)
       callback = () => {};
-    return ImagePickerManager.disableSwipableImageLibrary({...DEFAULT_OPTIONS, ...options}, callback)
+    return NativeImagePickerManager.enableSwipableCamera({...DEFAULT_OPTIONS, ...options}, callback)
+  },
+  disableSwipable: function() {
+    return NativeImagePickerManager.disableSwipable()
   },
 }
+
+export default ImagePickerManager;

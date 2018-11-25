@@ -1,11 +1,3 @@
-//
-//  BaseAnimator.m
-//  DraggableViewControllerDemo
-//
-//  Created by saiday on 11/19/15.
-//  Copyright © 2015 saiday. All rights reserved.
-//
-
 #import "BaseAnimator.h"
 
 @implementation BaseAnimator

@@ -4,14 +4,17 @@
 #import <AVFoundation/AVFoundation.h>
 #import <Photos/Photos.h>
 #import <React/RCTUtils.h>
+#import <React/RCTBridge.h>
+#import <React/RCTConvert.h>
+#import <React/RCTUIManager.h>
 
 //for swipes
 #import "DummyView.h"
 #import "MiniToLargeViewAnimator.h"
 #import "MiniToLargeViewInteractive.h"
-static CGFloat kButtonHeight = 50.f;
 
 @import MobileCoreServices;
+
 
 @interface ImagePickerManager ()
 
@@ -26,12 +29,18 @@ static CGFloat kButtonHeight = 50.f;
 @property (nonatomic) UIViewController *nextViewController;
 @property (nonatomic) MiniToLargeViewInteractive *presentInteractor;
 @property (nonatomic) MiniToLargeViewInteractive *dismissInteractor;
-@property (nonatomic, weak) UIView *dummyView;
+@property (nonatomic, weak) DummyView *dummyView;
+@property (nonatomic, strong) UIImage *miniViewSnapshot;
 @property (nonatomic) BOOL disableInteractivePlayerTransitioning;
 
 @end
 
+
 @implementation ImagePickerManager
+
+- (void)dealloc {
+    [self releaseImagePickerWithDummy:YES];
+}
 
 RCT_EXPORT_MODULE();
 
@@ -53,12 +62,16 @@ RCT_EXPORT_METHOD(enableSwipableImageLibrary:(NSDictionary *)options callback:(R
     [self enableSwipableImagePicker:RNImagePickerTargetLibrarySingleImage options:options];
 }
 
-RCT_EXPORT_METHOD(disableSwipableImageLibrary:(NSDictionary *)options callback:(RCTResponseSenderBlock)callback)
+RCT_EXPORT_METHOD(enableSwipableCamera:(NSDictionary *)options callback:(RCTResponseSenderBlock)callback)
 {
     self.callback = callback;
-    [self disableSwipableImagePicker:RNImagePickerTargetLibrarySingleImage options:options];
+    [self enableSwipableImagePicker:RNImagePickerTargetCamera options:options];
 }
 
+RCT_EXPORT_METHOD(disableSwipable)
+{
+    [self disableSwipableImagePicker];
+}
 
 RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseSenderBlock)callback)
 {
@@ -161,20 +174,16 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
     [self enableSwipableImagePicker:target];
 }
 
-- (void)disableSwipableImagePicker:(RNImagePickerTarget)target options:(NSDictionary *)options
-{
-    self.options = [options mutableCopy];
-    [self disableSwipableImagePicker:target];
-}
-
 - (void)enableSwipableImagePicker:(RNImagePickerTarget)target
 {
-    // Setup
-    [self setupImagePicker:target];
-    
-    // Setup swipes
+    // Setup callback
     void (^setupSwipesForImagePicker)() = ^void() {
         dispatch_async(dispatch_get_main_queue(), ^{
+            // Setup
+            [self releaseImagePickerWithDummy:YES];
+            [self setupImagePicker:target];
+            
+            // Setup swipes
             [self setupSwipesForPVC:self.picker];
         });
     };
@@ -202,10 +211,10 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
     }
 }
 
-- (void)disableSwipableImagePicker:(RNImagePickerTarget)target
+- (void)disableSwipableImagePicker
 {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [self releaseImagePicker];
+        [self releaseImagePickerWithDummy:YES];
     });
 }
 
@@ -215,6 +224,7 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
     if (target == RNImagePickerTargetCamera) {
 #if TARGET_IPHONE_SIMULATOR
         self.callback(@[@{@"error": @"Camera not available on simulator"}]);
+        self.picker = nil;
         return;
 #else
         self.picker.sourceType = UIImagePickerControllerSourceTypeCamera;
@@ -264,22 +274,39 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
     self.picker.delegate = self;
 }
 
-- (void)releaseImagePicker {
-    [self releaseSwipes];
+- (void)releaseImagePickerWithDummy:(BOOL)withDummy {
+    [self releaseSwipesWithDummy:withDummy];
     if (self.picker) {
         self.picker.delegate = nil;
     }
     self.picker = nil;
 }
 
+- (void)releaseImagePicker {
+    //tip: can try "light" release without dummy to prevent its recreation
+    [self releaseImagePickerWithDummy:YES];
+}
+
+- (void)setMiniView:(UIView*)miniView {
+    self.miniViewSnapshot = [self.class makeSnapshotOfView:miniView];
+    [self setMiniViewSnapshot];
+}
+
+- (void)setMiniViewSnapshot {
+    [self.dummyView addMiniViewSnapshot:self.miniViewSnapshot];
+    [self.dummyView.button addTarget:self action:@selector(bottomButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+}
+
 - (void)launchImagePicker:(RNImagePickerTarget)target
 {
-    // Setup
-    [self setupImagePicker:target];
-    
-    // Show
+    // Show callback
     void (^showPickerViewController)() = ^void() {
         dispatch_async(dispatch_get_main_queue(), ^{
+            // Setup
+            [self releaseImagePickerWithDummy:YES];
+            [self setupImagePicker:target];
+            
+            // Show
             UIViewController *root = RCTPresentedViewController();
             [root presentViewController:self.picker animated:YES completion:^{
             }];
@@ -370,6 +397,7 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
                 if (error) {
                     NSLog(@"Error creating documents subdirectory: %@", error);
                     self.callback(@[@{@"error": error.localizedFailureReason}]);
+                    [self releaseImagePicker];
                     return;
                 }
                 else {
@@ -436,8 +464,10 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
                     }
 
                     self.callback(@[gifResponse]);
+                    [self releaseImagePicker];
                 } failureBlock:^(NSError *error) {
                     self.callback(@[@{@"error": error.localizedFailureReason}]);
+                    [self releaseImagePicker];
                 }];
                 return;
             }
@@ -510,6 +540,7 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
                                 }
                             }
                             self.callback(@[self.response]);
+                            [self releaseImagePicker];
                         }
                     }];
                 } else {
@@ -548,6 +579,7 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
                   [fileManager moveItemAtURL:videoURL toURL:videoDestinationURL error:&error];
                   if (error) {
                       self.callback(@[@{@"error": error.localizedFailureReason}]);
+                      [self releaseImagePicker];
                       return;
                   }
                 }
@@ -564,6 +596,7 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
                 [library writeVideoAtPathToSavedPhotosAlbum:videoDestinationURL completionBlock:^(NSURL *assetURL, NSError *error) {
                     if (error) {
                         self.callback(@[@{@"error": error.localizedFailureReason}]);
+                        [self releaseImagePicker];
                         return;
                     } else {
                         NSLog(@"Save video succeed.");
@@ -579,6 +612,7 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
                             }
 
                             self.callback(@[self.response]);
+                            [self releaseImagePicker];
                         }
                     }
                 }];
@@ -598,10 +632,12 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
                 self.picker.sourceType != UIImagePickerControllerSourceTypeCamera)
             {
                 self.callback(@[self.response]);
+                [self releaseImagePicker];
             }
         }
         else {
             self.callback(@[self.response]);
+            [self releaseImagePicker];
         }
     };
 
@@ -618,6 +654,7 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
                 // don't send cancel because it can be multiple times which cause crash
             } else {
                 self.callback(@[@{@"didCancel": @YES}]);
+                [self releaseImagePicker];
             }
         }];
     });
@@ -625,9 +662,8 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
 
 #pragma mark - swipes
 
-- (void)releaseSwipes {
-    //UIViewController *rootVC = RCTPresentedViewController();
-    if (self.dummyView) {
+- (void)releaseSwipesWithDummy:(BOOL)withDummy {
+    if (self.dummyView && withDummy) {
         [self.dummyView removeFromSuperview];
         self.dummyView = nil;
     }
@@ -649,30 +685,37 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
 }
 
 - (void)setupSwipesForPVC:(UIViewController*)pvc {
-    [self releaseSwipes];
+    [self releaseSwipesWithDummy:YES];
     
     UIViewController *rootVC = RCTPresentedViewController();
     
-    DummyView *dummyView = [[DummyView alloc] init];
-    dummyView.translatesAutoresizingMaskIntoConstraints = NO;
-    [dummyView.button addTarget:self action:@selector(bottomButtonTapped) forControlEvents:UIControlEventTouchUpInside];
-    [rootVC.view addSubview:dummyView];
-    [dummyView addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.f constant:kButtonHeight]];
-    [rootVC.view addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:dummyView.superview attribute:NSLayoutAttributeRight multiplier:1.0 constant:0]];
-    [rootVC.view addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:dummyView.superview attribute:NSLayoutAttributeBottom multiplier:1.0 constant:0]];
-    [rootVC.view addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:dummyView.superview attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0]];
-    self.dummyView = dummyView;
+    if (!self.dummyView) {
+        DummyView *dummyView = [[DummyView alloc] init];
+        dummyView.translatesAutoresizingMaskIntoConstraints = NO;
+        [dummyView.button addTarget:self action:@selector(bottomButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+        [rootVC.view addSubview:dummyView];
+        CGFloat dummyHeight = [[self.options objectForKey:@"height"] floatValue];
+        [dummyView addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.f constant:dummyHeight]];
+        [rootVC.view addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:dummyView.superview attribute:NSLayoutAttributeRight multiplier:1.0 constant:0]];
+        [rootVC.view addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:dummyView.superview attribute:NSLayoutAttributeBottom multiplier:1.0 constant:0]];
+        [rootVC.view addConstraint:[NSLayoutConstraint constraintWithItem:dummyView attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:dummyView.superview attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0]];
+        self.dummyView = dummyView;
+        dummyView.backgroundColor = [UIColor clearColor];
+        if (self.miniViewSnapshot) {
+            [self setMiniViewSnapshot];
+        }
+    }
     
     self.nextViewController = pvc;
     self.nextViewController.transitioningDelegate = self;
-    self.nextViewController.modalTransitionStyle = UIModalPresentationCustom;
-    self.nextViewController.modalPresentationStyle = UIModalPresentationFullScreen;
+//    self.nextViewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
+//    self.nextViewController.modalPresentationStyle = UIModalPresentationFullScreen;
     
     self.presentInteractor = [[MiniToLargeViewInteractive alloc] init];
-    [self.presentInteractor attachToViewController:rootVC withSwipeView:dummyView withMiniView:dummyView presentViewController:self.nextViewController];
+    [self.presentInteractor attachToViewController:rootVC withSwipeView:self.dummyView withMiniView:self.dummyView presentViewController:self.nextViewController];
     
     self.dismissInteractor = [[MiniToLargeViewInteractive alloc] init];
-    [self.dismissInteractor attachToViewController:self.nextViewController withSwipeView:self.nextViewController.view withMiniView:dummyView presentViewController:nil];
+    [self.dismissInteractor attachToViewController:self.nextViewController withSwipeView:self.nextViewController.view withMiniView:self.dummyView presentViewController:nil];
 }
 
 
@@ -690,18 +733,17 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
 - (id<UIViewControllerAnimatedTransitioning>)animationControllerForDismissedController:(UIViewController *)dismissed
 {
     MiniToLargeViewAnimator *animator = [[MiniToLargeViewAnimator alloc] init];
-    animator.initialY = kButtonHeight;
     animator.transitionType = ModalAnimatedTransitioningTypeDismiss;
-    animator.miniView = self.dummyView;
+    animator.dummyView = self.dummyView;
     return animator;
 }
 
 - (id<UIViewControllerAnimatedTransitioning>)animationControllerForPresentedController:(UIViewController *)presented presentingController:(UIViewController *)presenting sourceController:(UIViewController *)source
 {
     MiniToLargeViewAnimator *animator = [[MiniToLargeViewAnimator alloc] init];
-    animator.initialY = kButtonHeight;
+    animator.isOnTap = self.disableInteractivePlayerTransitioning;
     animator.transitionType = ModalAnimatedTransitioningTypePresent;
-    animator.miniView = self.dummyView;
+    animator.dummyView = self.dummyView;
     return animator;
 }
 
@@ -881,6 +923,14 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
         NSLog(@"Error setting skip backup attribute: file not found");
         return @NO;
     }
+}
+
++ (UIImage*)makeSnapshotOfView:(UIView*)sourceView {
+    UIGraphicsBeginImageContext(sourceView.bounds.size);
+    [sourceView.layer renderInContext:UIGraphicsGetCurrentContext()];
+    UIImage *viewImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return viewImage;
 }
 
 #pragma mark - Class Methods

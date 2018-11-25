@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		014A3B6A1C6CF34500B6D375 /* ImagePickerManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 014A3B691C6CF34500B6D375 /* ImagePickerManager.m */; };
+		5A88D58D21A739AA0006F337 /* MiniView.m in Sources */ = {isa = PBXBuildFile; fileRef = 5A88D58B21A739AA0006F337 /* MiniView.m */; };
+		5A88D59021A73A4E0006F337 /* MiniViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 5A88D58F21A73A4E0006F337 /* MiniViewManager.m */; };
 		CE1C5B5E21A6AFEE0081ED3D /* BaseAnimator.m in Sources */ = {isa = PBXBuildFile; fileRef = CE1C5B5421A6AFEC0081ED3D /* BaseAnimator.m */; };
 		CE1C5B5F21A6AFEE0081ED3D /* DummyView.m in Sources */ = {isa = PBXBuildFile; fileRef = CE1C5B5621A6AFED0081ED3D /* DummyView.m */; };
 		CE1C5B6121A6AFEE0081ED3D /* MiniToLargeViewAnimator.m in Sources */ = {isa = PBXBuildFile; fileRef = CE1C5B5821A6AFED0081ED3D /* MiniToLargeViewAnimator.m */; };
@@ -30,6 +32,10 @@
 		014A3B5C1C6CF33500B6D375 /* libRNImagePicker.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRNImagePicker.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		014A3B681C6CF34500B6D375 /* ImagePickerManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImagePickerManager.h; sourceTree = "<group>"; };
 		014A3B691C6CF34500B6D375 /* ImagePickerManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ImagePickerManager.m; sourceTree = "<group>"; };
+		5A88D58B21A739AA0006F337 /* MiniView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MiniView.m; sourceTree = "<group>"; };
+		5A88D58C21A739AA0006F337 /* MiniView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MiniView.h; sourceTree = "<group>"; };
+		5A88D58E21A73A4E0006F337 /* MiniViewManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MiniViewManager.h; sourceTree = "<group>"; };
+		5A88D58F21A73A4E0006F337 /* MiniViewManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MiniViewManager.m; sourceTree = "<group>"; };
 		CE1C5B5421A6AFEC0081ED3D /* BaseAnimator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BaseAnimator.m; sourceTree = "<group>"; };
 		CE1C5B5521A6AFEC0081ED3D /* DummyView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DummyView.h; sourceTree = "<group>"; };
 		CE1C5B5621A6AFED0081ED3D /* DummyView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DummyView.m; sourceTree = "<group>"; };
@@ -56,6 +62,10 @@
 			children = (
 				CE1C5B5921A6AFED0081ED3D /* BaseAnimator.h */,
 				CE1C5B5421A6AFEC0081ED3D /* BaseAnimator.m */,
+				5A88D58C21A739AA0006F337 /* MiniView.h */,
+				5A88D58B21A739AA0006F337 /* MiniView.m */,
+				5A88D58E21A73A4E0006F337 /* MiniViewManager.h */,
+				5A88D58F21A73A4E0006F337 /* MiniViewManager.m */,
 				CE1C5B5521A6AFEC0081ED3D /* DummyView.h */,
 				CE1C5B5621A6AFED0081ED3D /* DummyView.m */,
 				CE1C5B5B21A6AFED0081ED3D /* MiniToLargeViewAnimator.h */,
@@ -133,10 +143,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				014A3B6A1C6CF34500B6D375 /* ImagePickerManager.m in Sources */,
+				5A88D59021A73A4E0006F337 /* MiniViewManager.m in Sources */,
 				CE1C5B6221A6AFEE0081ED3D /* MiniToLargeViewInteractive.m in Sources */,
 				CE1C5B5F21A6AFEE0081ED3D /* DummyView.m in Sources */,
 				CE1C5B6121A6AFEE0081ED3D /* MiniToLargeViewAnimator.m in Sources */,
 				CE1C5B5E21A6AFEE0081ED3D /* BaseAnimator.m in Sources */,
+				5A88D58D21A739AA0006F337 /* MiniView.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -8,4 +8,6 @@ typedef NS_ENUM(NSInteger, RNImagePickerTarget) {
 
 @interface ImagePickerManager : NSObject <RCTBridgeModule, UINavigationControllerDelegate, UIActionSheetDelegate, UIImagePickerControllerDelegate, UIViewControllerTransitioningDelegate>
 
+- (void)setMiniView:(UIView*)miniView;
+
 @end

@@ -1,11 +1,3 @@
-//
-//  BaseAnimator.h
-//  DraggableViewControllerDemo
-//
-//  Created by saiday on 11/19/15.
-//  Copyright © 2015 saiday. All rights reserved.
-//
-
 #import <UIKit/UIKit.h>
 
 typedef NS_ENUM(NSInteger, ModalAnimatedTransitioningType) {
