@@ -9,6 +9,7 @@
 #import <React/RCTUIManager.h>
 #import <CoreImage/CoreImage.h>
 #import <ImageIO/ImageIO.h>
+#import <objc/runtime.h>
 
 //for swipes
 #import "DummyView.h"
@@ -477,8 +478,10 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
             image = [self fixOrientation:image];  // Rotate the image for upload to web
             
             // If needed, detect face
-            NSArray* faces = [self detectFacesOnImage:image];
+            NSArray* rawFaces = [self detectFacesOnImage:image];
+            NSArray* faces = [self serializeFaces:rawFaces];
             [self.response setObject:faces forKey:@"faces"];
+            [self.response setObject:[self serializeCGSize:image.size] forKey:@"originalSize"];
 
             // If needed, downscale image
             float maxWidth = image.size.width;
@@ -826,6 +829,58 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
     
     NSArray *features = [detector featuresInImage:ciImage options:opts];
     return features;
+}
+
+- (NSDictionary*)serializeCGRect:(CGRect)rect {
+    return @{
+             @"x": [NSNumber numberWithFloat:rect.origin.x],
+             @"y": [NSNumber numberWithFloat:rect.origin.y],
+             @"width": [NSNumber numberWithFloat:rect.size.width],
+             @"height": [NSNumber numberWithFloat:rect.size.height]
+             };
+}
+
+- (NSDictionary*)serializeCGPoint:(CGPoint)point {
+    return @{
+             @"x": [NSNumber numberWithFloat:point.x],
+             @"y": [NSNumber numberWithFloat:point.y]
+             };
+}
+
+- (NSDictionary*)serializeCGSize:(CGSize)size {
+    return @{
+             @"width": [NSNumber numberWithFloat:size.width],
+             @"height": [NSNumber numberWithFloat:size.height]
+             };
+}
+
+- (NSDictionary*)serializeFace:(CIFaceFeature*)rawFace {
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+    
+    // simple properties
+    unsigned count;
+    objc_property_t *properties = class_copyPropertyList([rawFace class], &count);
+    for (int i = 0; i < count; i++) {
+        NSString *key = [NSString stringWithUTF8String:property_getName(properties[i])];
+        [dict setObject:[rawFace valueForKey:key] forKey:key];
+    }
+    free(properties);
+    
+    // extra properties
+    [dict setObject:[self serializeCGRect:rawFace.bounds] forKey:@"bounds"];
+    [dict setValue:[self serializeCGPoint:rawFace.leftEyePosition] forKey:@"leftEyePosition"];
+    [dict setValue:[self serializeCGPoint:rawFace.rightEyePosition] forKey:@"rightEyePosition"];
+    [dict setValue:[self serializeCGPoint:rawFace.mouthPosition] forKey:@"mouthPosition"];
+    
+    return [NSDictionary dictionaryWithDictionary:dict];
+}
+
+- (NSArray*)serializeFaces:(NSArray*)rawFaces {
+    NSMutableArray* faces = [[NSMutableArray alloc] initWithCapacity:rawFaces.count];
+    for (CIFaceFeature* rawFace in rawFaces) {
+        [faces addObject:[self serializeFace:rawFace]];
+    }
+    return faces;
 }
 
 - (UIImage*)downscaleImageIfNecessary:(UIImage*)image maxWidth:(float)maxWidth maxHeight:(float)maxHeight
