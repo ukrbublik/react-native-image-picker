@@ -7,6 +7,8 @@
 #import <React/RCTBridge.h>
 #import <React/RCTConvert.h>
 #import <React/RCTUIManager.h>
+#import <CoreImage/CoreImage.h>
+#import <ImageIO/ImageIO.h>
 
 //for swipes
 #import "DummyView.h"
@@ -473,6 +475,10 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
             }
 
             image = [self fixOrientation:image];  // Rotate the image for upload to web
+            
+            // If needed, detect face
+            NSArray* faces = [self detectFacesOnImage:image];
+            [self.response setObject:faces forKey:@"faces"];
 
             // If needed, downscale image
             float maxWidth = image.size.width;
@@ -802,6 +808,24 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
     else {
         callback(NO);
     }
+}
+
+- (NSArray*)detectFacesOnImage:(UIImage*)image {
+    CIImage* ciImage = [CIImage imageWithCGImage:[image CGImage]];
+    CIContext* context = [CIContext context];
+    NSDictionary* detectorOpts = @{ CIDetectorAccuracy : CIDetectorAccuracyHigh };
+    CIDetector* detector = [CIDetector detectorOfType:CIDetectorTypeFace
+                                              context:context
+                                              options:detectorOpts];
+    
+    NSMutableDictionary* opts = [[NSMutableDictionary alloc] init];
+    NSString* strImagePropertyOrientation = (__bridge NSString *)kCGImagePropertyOrientation;
+    id valImagePropertyOrientation = [[ciImage properties] valueForKey:strImagePropertyOrientation];
+    if (valImagePropertyOrientation)
+        [opts setValue:valImagePropertyOrientation forKey:CIDetectorImageOrientation];
+    
+    NSArray *features = [detector featuresInImage:ciImage options:opts];
+    return features;
 }
 
 - (UIImage*)downscaleImageIfNecessary:(UIImage*)image maxWidth:(float)maxWidth maxHeight:(float)maxHeight
